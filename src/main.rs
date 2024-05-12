@@ -1,5 +1,4 @@
-use std::io;
-
+use color_eyre::eyre::{bail, Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     prelude::*,
@@ -7,13 +6,15 @@ use ratatui::{
     widgets::{block::*, *},
 };
 
+mod errors;
 mod tui;
 
-fn main() -> io::Result<()> {
+fn main() -> color_eyre::Result<()> {
+    errors::install_hooks()?;
     let mut terminal = tui::init()?;
-    let exit_code = App::default().run(&mut terminal);
-    tui::restore();
-    exit_code
+    App::default().run(&mut terminal)?;
+    tui::restore()?;
+    Ok(())
 }
 
 #[derive(Debug, Default)]
@@ -24,10 +25,10 @@ pub struct App {
 
 impl App {
     // runs the application's main loop
-    pub fn run(&mut self, terminal: &mut tui::Tui) -> io::Result<()> {
+    pub fn run(&mut self, terminal: &mut tui::Tui) -> Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.render_frame(frame))?;
-            self.handle_events()?;
+            self.handle_events().wrap_err("handle event failed")?;
         }
         Ok(())
     }
@@ -36,35 +37,40 @@ impl App {
         frame.render_widget(self, frame.size());
     }
 
-    fn handle_events(&mut self) -> io::Result<()> {
+    fn handle_events(&mut self) -> Result<()> {
         match event::read()? {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)
-            }
-            _ => (),
+            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => self
+                .handle_key_event(key_event)
+                .wrap_err_with(|| format!("hangling key event failed:\n{key_event:#?}")),
+            _ => Ok(()),
         }
-        Ok(())
     }
 
-    fn handle_key_event(&mut self, key_event: KeyEvent) {
+    fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
-            KeyCode::Right => self.increment_counter(),
-            KeyCode::Left => self.decrement_counter(),
+            KeyCode::Right => self.increment_counter()?,
+            KeyCode::Left => self.decrement_counter()?,
             _ => {}
         }
+        Ok(())
     }
 
     fn exit(&mut self) {
         self.exit = true;
     }
 
-    fn increment_counter(&mut self) {
-        self.counter = self.counter.saturating_add(1);
+    fn increment_counter(&mut self) -> Result<()> {
+        self.counter += 1;
+        if self.counter > 2 {
+            bail!("counter overflow");
+        }
+        Ok(())
     }
 
-    fn decrement_counter(&mut self) {
-        self.counter = self.counter.saturating_sub(1);
+    fn decrement_counter(&mut self) -> Result<()> {
+        self.counter -= 1;
+        Ok(())
     }
 }
 
@@ -138,16 +144,36 @@ mod tests {
     #[test]
     fn handle_key_event() -> io::Result<()> {
         let mut app = App::default();
-        app.handle_key_event(KeyCode::Right.into());
+        app.handle_key_event(KeyCode::Right.into()).unwrap();
         assert_eq!(app.counter, 1);
 
-        app.handle_key_event(KeyCode::Left.into());
+        app.handle_key_event(KeyCode::Left.into()).unwrap();
         assert_eq!(app.counter, 0);
 
         let mut app = App::default();
-        app.handle_key_event(KeyCode::Char('q').into());
-        assert_eq!(app.exit, true);
+        app.handle_key_event(KeyCode::Char('q').into()).unwrap();
+        assert!(app.exit);
 
         Ok(())
+    }
+
+    #[test]
+    #[should_panic(expected = "attempt to subtract with overflow")]
+    fn handle_key_event_panic() {
+        let mut app = App::default();
+        let _ = app.handle_key_event(KeyCode::Left.into());
+    }
+
+    #[test]
+    fn handle_ley_event_overflow() {
+        let mut app = App::default();
+        assert!(app.handle_key_event(KeyCode::Right.into()).is_ok());
+        assert!(app.handle_key_event(KeyCode::Right.into()).is_ok());
+        assert_eq!(
+            app.handle_key_event(KeyCode::Right.into())
+                .unwrap_err()
+                .to_string(),
+            "counter overflow"
+        );
     }
 }
