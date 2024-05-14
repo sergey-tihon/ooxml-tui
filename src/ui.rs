@@ -1,10 +1,11 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    text::Text,
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::app::App;
 
@@ -33,14 +34,16 @@ pub fn ui(f: &mut Frame, app: &App) {
         .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
         .split(chunks[1]);
 
-    let mut list_items = Vec::<ListItem>::new();
-    for key in app.entries.iter() {
-        list_items.push(ListItem::new(Line::from(Span::styled(
-            key,
-            Style::default().fg(Color::Yellow),
-        ))));
-    }
+    let mut state = TreeState::default();
+    let items = app
+        .entries
+        .iter()
+        .map(|item| TreeItem::new_leaf(item.as_str(), item.as_str()))
+        .collect::<Vec<_>>();
 
-    let list = List::new(list_items);
-    f.render_widget(list, sections[0]);
+    let tree_widget = Tree::new(items)
+        .expect("all item identifiers are unique")
+        .block(Block::bordered().title("Document Inspector"));
+
+    f.render_stateful_widget(tree_widget, sections[0], &mut state);
 }
