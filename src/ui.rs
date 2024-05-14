@@ -5,6 +5,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use tui_textarea::TextArea;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::app::App;
@@ -35,15 +36,21 @@ pub fn ui(f: &mut Frame, app: &App) {
         .split(chunks[1]);
 
     let mut state = TreeState::default();
+    let tree_widget = create_tree(app).block(Block::bordered().title("Document Inspector"));
+
+    f.render_stateful_widget(tree_widget, sections[0], &mut state);
+
+    let mut textarea = TextArea::default();
+    textarea.set_block(Block::default().borders(Borders::ALL).title("File content"));
+
+    f.render_widget(textarea.widget(), sections[1]);
+}
+
+pub fn create_tree(app: &App) -> Tree<&str> {
     let items = app
         .entries
         .iter()
         .map(|item| TreeItem::new_leaf(item.as_str(), item.as_str()))
         .collect::<Vec<_>>();
-
-    let tree_widget = Tree::new(items)
-        .expect("all item identifiers are unique")
-        .block(Block::bordered().title("Document Inspector"));
-
-    f.render_stateful_widget(tree_widget, sections[0], &mut state);
+    Tree::new(items).expect("all item identifiers are unique")
 }
