@@ -1,43 +1,44 @@
 use std::io;
 
-use tui_tree_widget::TreeState;
+use tui_tree_widget::{TreeItem, TreeState};
 
 #[derive(Debug, Clone)]
 pub struct Node {
     pub name: String,
-    pub children: Vec<Box<Node>>,
+    pub children: Vec<Node>,
 }
 
 impl Node {
     fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            children: Vec::<Box<Self>>::new(),
+            children: Vec::<Self>::new(),
         }
     }
 
     fn find_child(&mut self, name: &str) -> Option<&mut Self> {
-        for c in self.children.iter_mut() {
-            if c.name == name {
-                return Some(c);
-            }
-        }
-        None
+        self.children.iter_mut().find(|c| c.name == name)
     }
 
     fn add_child<T>(&mut self, leaf: T) -> &mut Self
     where
         T: Into<Self>,
     {
-        self.children.push(Box::new(leaf.into()));
+        self.children.push(leaf.into());
         self
     }
 }
 
 pub struct App {
     pub file_path: String,
-    pub tree_state: TreeState<String>,
     pub root: Node,
+    pub tree_state: TreeState<String>,
+    pub tree_items: Vec<TreeItem<'static, String>>,
+    pub current_widget: CurrentWidget,
+}
+
+pub enum CurrentWidget {
+    Tree,
 }
 
 impl App {
@@ -52,10 +53,14 @@ impl App {
             App::build_tree(&mut root, &path, 0);
         }
 
+        let tree_items = App::create_tree(&root);
+
         Ok(Self {
             file_path: path,
-            tree_state: TreeState::default(),
             root,
+            tree_state: TreeState::default(),
+            tree_items,
+            current_widget: CurrentWidget::Tree,
         })
     }
 
@@ -76,6 +81,24 @@ impl App {
             };
             App::build_tree(dir, parts, depth + 1);
         }
+    }
+
+    fn create_tree(root: &Node) -> Vec<TreeItem<'static, String>> {
+        fn to_tree_item(node: &Node) -> TreeItem<'static, String> {
+            let text = node.name.to_owned();
+            let identifier = node.name.to_owned();
+
+            if node.children.is_empty() {
+                TreeItem::new_leaf(identifier, text)
+            } else {
+                TreeItem::new(identifier, text, parse_children(node)).unwrap()
+            }
+        }
+        fn parse_children(node: &Node) -> Vec<TreeItem<'static, String>> {
+            node.children.iter().map(to_tree_item).collect()
+        }
+
+        parse_children(root)
     }
 }
 

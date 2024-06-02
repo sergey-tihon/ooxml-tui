@@ -1,14 +1,14 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::Text,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation},
     Frame,
 };
 use tui_textarea::TextArea;
-use tui_tree_widget::{Tree, TreeItem};
+use tui_tree_widget::Tree;
 
-use crate::app::{App, Node};
+use crate::app::App;
 
 pub fn ui(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
@@ -35,7 +35,26 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
         .split(chunks[1]);
 
-    let tree_widget = create_tree(&app.root).block(Block::bordered().title("Document Inspector"));
+    let tree_widget = Tree::new(&app.tree_items)
+        .expect("all item identifiers are unique")
+        .block(
+            Block::bordered()
+                .title("Document Inspector")
+                .title_bottom(format!("{:?}", app.tree_state)),
+        )
+        .experimental_scrollbar(Some(
+            Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(None)
+                .track_symbol(None)
+                .end_symbol(None),
+        ))
+        .highlight_style(
+            Style::new()
+                .fg(Color::Black)
+                .bg(Color::LightGreen)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(">> ");
 
     f.render_stateful_widget(tree_widget, sections[0], &mut app.tree_state);
 
@@ -43,28 +62,4 @@ pub fn ui(f: &mut Frame, app: &mut App) {
     textarea.set_block(Block::default().borders(Borders::ALL).title("File content"));
 
     f.render_widget(textarea.widget(), sections[1]);
-}
-
-pub fn create_tree(root: &Node) -> Tree<String> {
-    fn to_tree_item(node: &Node) -> TreeItem<String> {
-        if node.children.is_empty() {
-            return TreeItem::new_leaf(node.name.to_owned(), node.name.to_owned());
-        }
-
-        TreeItem::new(
-            node.name.to_owned(),
-            node.name.to_owned(),
-            parse_children(node),
-        )
-        .unwrap()
-    }
-    fn parse_children(node: &Node) -> Vec<TreeItem<String>> {
-        node.children
-            .iter()
-            .map(|child| to_tree_item(child))
-            .collect()
-    }
-
-    let items = parse_children(&root);
-    Tree::new(items).expect("all item identifiers are unique")
 }

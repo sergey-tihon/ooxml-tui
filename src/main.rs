@@ -1,6 +1,6 @@
 use std::{error::Error, io};
 
-use app::App;
+use app::{App, CurrentWidget};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -46,6 +46,21 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
 
             if let KeyCode::Char('q') = key.code {
                 return Ok(());
+            }
+
+            match app.current_widget {
+                CurrentWidget::Tree => match key.code {
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        app.tree_state.key_down();
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        app.tree_state.key_up();
+                    }
+                    KeyCode::Enter => {
+                        app.tree_state.toggle_selected();
+                    }
+                    _ => {}
+                },
             }
 
             // match app.current_screen {
