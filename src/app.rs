@@ -37,8 +37,10 @@ pub struct App {
     pub current_widget: CurrentWidget,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CurrentWidget {
     Tree,
+    TextArea,
 }
 
 impl App {

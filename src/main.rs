@@ -44,8 +44,19 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 continue;
             }
 
-            if let KeyCode::Char('q') = key.code {
-                return Ok(());
+            match key.code {
+                KeyCode::Char('q') => {
+                    return Ok(());
+                }
+                KeyCode::Char('2') => {
+                    app.current_widget = CurrentWidget::Tree;
+                    continue;
+                }
+                KeyCode::Char('3') => {
+                    app.current_widget = CurrentWidget::TextArea;
+                    continue;
+                }
+                _ => {}
             }
 
             match app.current_widget {
@@ -59,6 +70,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     KeyCode::Enter => {
                         app.tree_state.toggle_selected();
                     }
+                    _ => {}
+                },
+                CurrentWidget::TextArea => match key.code {
                     _ => {}
                 },
             }
