@@ -1,5 +1,6 @@
 use std::io;
 
+use tui_textarea::TextArea;
 use tui_tree_widget::{TreeItem, TreeState};
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,7 @@ pub struct App {
     pub root: Node,
     pub tree_state: TreeState<String>,
     pub tree_items: Vec<TreeItem<'static, String>>,
+    pub textarea: TextArea<'static>,
     pub current_widget: CurrentWidget,
 }
 
@@ -62,6 +64,7 @@ impl App {
             root,
             tree_state: TreeState::default(),
             tree_items,
+            textarea: TextArea::default(),
             current_widget: CurrentWidget::Tree,
         })
     }

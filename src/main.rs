@@ -72,9 +72,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     }
                     _ => {}
                 },
-                CurrentWidget::TextArea => match key.code {
-                    _ => {}
-                },
+                CurrentWidget::TextArea => {
+                    app.textarea.input(key);
+                }
             }
 
             // match app.current_screen {

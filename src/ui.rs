@@ -5,7 +5,6 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation},
     Frame,
 };
-use tui_textarea::TextArea;
 use tui_tree_widget::Tree;
 
 use crate::app::{App, CurrentWidget};
@@ -29,7 +28,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
 
     let title = Paragraph::new(Text::styled(
         format!("File path: {}", app.file_path),
-        Style::default().fg(Color::Green),
+        Style::default().fg(acsent_color),
     ))
     .block(title_block);
 
@@ -67,8 +66,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
 
     f.render_stateful_widget(tree_widget, sections[0], &mut app.tree_state);
 
-    let mut textarea = TextArea::default();
-    textarea.set_block(
+    app.textarea.set_block(
         Block::default()
             .borders(Borders::ALL)
             .title("[3] File content")
@@ -79,5 +77,5 @@ pub fn ui(f: &mut Frame, app: &mut App) {
             }),
     );
 
-    f.render_widget(textarea.widget(), sections[1]);
+    f.render_widget(app.textarea.widget(), sections[1]);
 }
