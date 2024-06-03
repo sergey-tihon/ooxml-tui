@@ -1,6 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
+    text::Line,
     text::Text,
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation},
     Frame,
@@ -44,7 +45,8 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         .expect("all item identifiers are unique")
         .block(
             Block::bordered()
-                .title("[2] Document Inspector")
+                .title("Document Inspector")
+                .title_top(Line::from("[Ctrl+2]").right_aligned())
                 .border_style(if app.current_widget == CurrentWidget::Tree {
                     active_style
                 } else {
@@ -69,7 +71,8 @@ pub fn ui(f: &mut Frame, app: &mut App) {
     app.textarea.set_block(
         Block::default()
             .borders(Borders::ALL)
-            .title("[3] File content")
+            .title("File content")
+            .title_top(Line::from("[Ctrl+3]").right_aligned())
             .border_style(if app.current_widget == CurrentWidget::TextArea {
                 active_style
             } else {

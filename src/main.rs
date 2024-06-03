@@ -2,7 +2,7 @@ use std::{error::Error, io};
 
 use app::{App, CurrentWidget};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -48,11 +48,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 KeyCode::Char('q') => {
                     return Ok(());
                 }
-                KeyCode::Char('2') => {
+                KeyCode::Char('2') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     app.current_widget = CurrentWidget::Tree;
                     continue;
                 }
-                KeyCode::Char('3') => {
+                KeyCode::Char('3') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     app.current_widget = CurrentWidget::TextArea;
                     continue;
                 }
@@ -76,70 +76,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     app.textarea.input(key);
                 }
             }
-
-            // match app.current_screen {
-            //     CurrentScreen::Main => match key.code {
-            //         KeyCode::Char('e') => {
-            //             app.current_screen = CurrentScreen::Editing;
-            //             app.currently_editing = Some(CurrentlyEditing::Key);
-            //         }
-            //         KeyCode::Char('q') => {
-            //             app.current_screen = CurrentScreen::Exiting;
-            //         }
-            //         _ => {}
-            //     },
-            //     CurrentScreen::Exiting => match key.code {
-            //         KeyCode::Char('y') => return Ok(true),
-            //         KeyCode::Char('n') | KeyCode::Char('q') => return Ok(false),
-            //         _ => {}
-            //     },
-            //     CurrentScreen::Editing if key.kind == event::KeyEventKind::Press => {
-            //         match key.code {
-            //             KeyCode::Enter => {
-            //                 if let Some(editing) = &app.currently_editing {
-            //                     match editing {
-            //                         CurrentlyEditing::Key => {
-            //                             app.currently_editing = Some(CurrentlyEditing::Value)
-            //                         }
-            //                         CurrentlyEditing::Value => {
-            //                             app.save_key_value();
-            //                             app.current_screen = CurrentScreen::Main;
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //             KeyCode::Backspace => {
-            //                 if let Some(editing) = &app.currently_editing {
-            //                     match editing {
-            //                         CurrentlyEditing::Key => {
-            //                             app.key_input.pop();
-            //                         }
-            //                         CurrentlyEditing::Value => {
-            //                             app.value_input.pop();
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //             KeyCode::Tab => {
-            //                 app.toggle_editing();
-            //             }
-            //             KeyCode::Char(value) => {
-            //                 if let Some(editing) = &app.currently_editing {
-            //                     match editing {
-            //                         CurrentlyEditing::Key => {
-            //                             app.key_input.push(value);
-            //                         }
-            //                         CurrentlyEditing::Value => {
-            //                             app.value_input.push(value);
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //             _ => {}
-            //         }
-            //     }
-            //     _ => {}
-            // }
         }
     }
 }
