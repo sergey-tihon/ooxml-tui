@@ -69,6 +69,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     }
                     KeyCode::Enter => {
                         app.tree_state.toggle_selected();
+                        app.load_selected_file_content()?;
                     }
                     _ => {}
                 },

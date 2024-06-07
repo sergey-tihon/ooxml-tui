@@ -1,4 +1,7 @@
-use std::io;
+use std::{
+    error::Error,
+    io::{self, Read},
+};
 
 use tui_textarea::TextArea;
 use tui_tree_widget::{TreeItem, TreeState};
@@ -6,13 +9,15 @@ use tui_tree_widget::{TreeItem, TreeState};
 #[derive(Debug, Clone)]
 pub struct Node {
     pub name: String,
+    pub path: String,
     pub children: Vec<Node>,
 }
 
 impl Node {
-    fn new(name: &str) -> Self {
+    fn new(name: &str, path: &str) -> Self {
         Self {
             name: name.to_string(),
+            path: path.to_string(),
             children: Vec::<Self>::new(),
         }
     }
@@ -50,7 +55,7 @@ impl App {
         let file = std::fs::File::open(path.clone())?;
         let archive = zip::ZipArchive::new(file)?;
 
-        let mut root = Node::new("root");
+        let mut root = Node::new("root", "");
 
         for file in archive.file_names() {
             let path = file.split('/').collect::<Vec<&str>>();
@@ -69,6 +74,27 @@ impl App {
         })
     }
 
+    pub fn load_selected_file_content(&mut self) -> io::Result<()> {
+        let selected = self.tree_state.selected();
+        let file_name = match selected.last() {
+            Some(x) => x,
+            None => return Ok(()),
+        };
+
+        let file = std::fs::File::open(self.file_path.clone())?;
+        let mut zip = zip::ZipArchive::new(file)?;
+
+        let file_name = file_name.trim_start_matches('/');
+        if let Ok(mut entry) = zip.by_name(file_name) {
+            let mut buf = String::new();
+            entry.read_to_string(&mut buf)?;
+
+            self.textarea = buf.lines().collect();
+        }
+
+        Ok(())
+    }
+
     fn build_tree(node: &mut Node, parts: &Vec<&str>, depth: usize) {
         if depth < parts.len() {
             let item = &parts[depth];
@@ -76,7 +102,8 @@ impl App {
             let dir = match node.find_child(item) {
                 Some(d) => d,
                 None => {
-                    let d = Node::new(item);
+                    let path = node.path.to_owned() + "/" + item;
+                    let d = Node::new(item, &path);
                     node.add_child(d);
                     match node.find_child(item) {
                         Some(d2) => d2,
@@ -91,7 +118,7 @@ impl App {
     fn create_tree(root: &Node) -> Vec<TreeItem<'static, String>> {
         fn to_tree_item(node: &Node) -> TreeItem<'static, String> {
             let text = node.name.to_owned();
-            let identifier = node.name.to_owned();
+            let identifier = node.path.to_owned();
 
             if node.children.is_empty() {
                 TreeItem::new_leaf(identifier, text)
@@ -118,6 +145,16 @@ mod tests {
         app.root.children.iter().for_each(|node| {
             println!("{}", node.name);
         });
+
+        Ok(())
+    }
+
+    #[test]
+    fn load_selected_file_content() -> io::Result<()> {
+        let mut app = App::from_file("data/sample.pptx".to_string())?;
+        app.tree_state.select_first();
+        app.load_selected_file_content()?;
+        app.load_selected_file_content()?;
 
         Ok(())
     }
