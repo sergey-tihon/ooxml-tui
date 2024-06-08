@@ -1,10 +1,8 @@
-use std::{
-    error::Error,
-    io::{self, Read},
-};
+use std::io::{self, Read};
 
 use tui_textarea::TextArea;
 use tui_tree_widget::{TreeItem, TreeState};
+use xml::{EmitterConfig, EventReader};
 
 #[derive(Debug, Clone)]
 pub struct Node {
@@ -89,10 +87,34 @@ impl App {
             let mut buf = String::new();
             entry.read_to_string(&mut buf)?;
 
-            self.textarea = buf.lines().collect();
+            let formatted = Self::pretty_print_xml(&buf)?;
+            self.textarea = formatted.lines().collect();
         }
 
         Ok(())
+    }
+
+    fn pretty_print_xml(str: &str) -> io::Result<String> {
+        let parser = EventReader::new(str.as_bytes());
+
+        let mut buf = Vec::new();
+        let mut writer = EmitterConfig::new()
+            .perform_indent(true)
+            .create_writer(&mut buf);
+
+        for e in parser {
+            match e {
+                Ok(reader_event) => {
+                    if let Some(writer_event) = reader_event.as_writer_event() {
+                        writer.write(writer_event).unwrap();
+                    }
+                }
+                Err(_) => todo!(),
+            }
+        }
+
+        let res = String::from_utf8_lossy(&buf);
+        Ok(res.to_string())
     }
 
     fn build_tree(node: &mut Node, parts: &Vec<&str>, depth: usize) {
