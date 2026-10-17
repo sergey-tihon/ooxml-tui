@@ -127,7 +127,7 @@ impl PackageIndex {
         check_archive_limits(entry_count, 0)?;
         for entry_index in 0..entry_count {
             let mut entry = archive.by_index(entry_index).map_err(io::Error::other)?;
-            let archive_name = entry.name().to_string();
+            let archive_name = entry.name().map_err(io::Error::other)?.into_owned();
             let size = entry.size();
             let compressed_size = entry.compressed_size();
             let crc32 = entry.crc32();
@@ -346,7 +346,7 @@ pub fn write_edited<R: Read + Seek, W: Write + Seek>(
 
     for entry_index in 0..entry_count {
         let entry = source.by_index_raw(entry_index).map_err(io::Error::other)?;
-        let name = entry.name().to_string();
+        let name = entry.name().map_err(io::Error::other)?.into_owned();
         let replacement = replacements.remove(&name);
         let effective_size = match replacement {
             Some(bytes) => u64::try_from(bytes.len()).map_err(|_| {
