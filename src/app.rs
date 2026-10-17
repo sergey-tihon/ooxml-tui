@@ -4456,22 +4456,23 @@ mod tests {
         for index in 0..original.len() {
             let mut before = original.by_index(index)?;
             let mut after = saved.by_index(index)?;
-            assert_eq!(before.name(), after.name(), "entry order is preserved");
+            let before_name = before.name().map_err(io::Error::other)?.into_owned();
+            let after_name = after.name().map_err(io::Error::other)?.into_owned();
+            assert_eq!(before_name, after_name, "entry order is preserved");
             let mut before_bytes = Vec::new();
             before.read_to_end(&mut before_bytes)?;
             let mut after_bytes = Vec::new();
             after.read_to_end(&mut after_bytes)?;
-            if before.name() == "ppt/slides/slide1.xml" {
+            if before_name == "ppt/slides/slide1.xml" {
                 assert_ne!(before_bytes, after_bytes);
                 assert_eq!(before.compression(), after.compression());
                 assert!(String::from_utf8_lossy(&after_bytes).contains("EDITED TUI"));
             } else {
                 assert_eq!(before.compression(), after.compression());
                 assert_eq!(
-                    before_bytes,
-                    after_bytes,
+                    before_bytes, after_bytes,
                     "{} must be untouched",
-                    before.name()
+                    before_name
                 );
             }
         }
